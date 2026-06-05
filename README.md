@@ -110,3 +110,11 @@ logger.log(GenerationSnapshot::new(0, [33, 34, 33], 0.65, 0.66));
 ## License
 
 MIT
+
+## See Also
+- **ternary-chaos** — related
+- **ternary-kuramoto** — related
+- **ternary-entropy** — related
+- **ternary-phase** — related
+- **ternary-ising** — related
+
