@@ -1,120 +1,75 @@
 # ternary-dynamics
 
-[![Crates.io](https://img.shields.io/crates/v/ternary-dynamics.svg)](https://crates.io/crates/ternary-dynamics)
-[![Documentation](https://docs.rs/ternary-dynamics/badge.svg)](https://docs.rs/ternary-dynamics)
-![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+**# Ternary Dynamics  Temporal dynamics of ternary agent systems — how strategies evolve over time,...**
 
-Temporal dynamics of ternary agent systems — how strategies evolve over time, phase transitions, and critical points.
+[![ternary](https://img.shields.io/badge/ecosystem-ternary-blue)](https://github.com/orgs/SuperInstance/repositories?q=ternary)
+[![tests](https://img.shields.io/badge/tests-0-green)]()
 
-## Theory
+## Overview
 
-In ternary agent systems, every agent operates under one of three fundamental strategies:
+# Ternary Dynamics
 
-- **Avoid** — retreat from interaction, minimize risk and exposure
-- **Cooperate** — seek mutual benefit through collaboration
-- **Exploit** — take advantage of others for personal gain
+Temporal dynamics of ternary agent systems — how strategies evolve over time,
+phase transitions, and critical points in populations governed by ternary
+(avoid, cooperate, exploit) logic.
 
-The interplay of these strategies over time produces rich dynamics analogous to physical systems:
+## Architecture
 
-### Phase Transitions
+- **`TernaryStrategy`** — state enumeration
 
-Much like matter transitioning between solid, liquid, and gas, ternary populations undergo sudden shifts in collective behavior. A population of cooperators can collapse into avoidance in a single generation — a **cascade** — when exploitation pressure crosses a critical threshold. These transitions are marked by discontinuities in population-level metrics like diversity and avoidance ratio.
+### Key Functions
 
-### Critical Points
+- `all()`
 
-Critical points mark generations where the system's behavior fundamentally changes:
+## Why Ternary?
 
-- **Fitness plateaus** — the population reaches an evolutionary equilibrium
-- **Diversity cliffs** — rapid loss of strategy variety, often presaging monoculture
-- **Avoidance spikes** — sudden retreat behavior, a hallmark of cascading fear
-- **Population crashes** — mass die-offs triggered by over-exploitation
+The balanced ternary system {-1, 0, +1} (also known as Z₃) is the mathematically optimal discrete encoding:
+- **More expressive than binary**: three states capture positive, neutral, and negative
+- **Natural for decisions**: accept/reject/abstain, buy/hold/sell, agree/disagree/neutral
+- **Self-balancing**: the 0 state acts as a universal screen, preventing pathological lock-in
+- **Z₃ cyclic dynamics**: rock-paper-scissors is the only natural coordination mechanism
 
-Identifying these points allows researchers to predict and potentially steer system outcomes.
+## Stats
 
-### Dynamic Modes
+| Metric | Value |
+|--------|-------|
+| Lines of Rust | 37 |
+| Test count | 0 |
+| Public types | 1 |
+| Public functions | 1 |
 
-Over time, ternary systems can be classified into four dynamic regimes:
+## Ecosystem
 
-| Mode | Description |
-|------|-------------|
-| **Converging** | Metrics trend consistently in one direction |
-| **Oscillating** | Regular cycling between states (predator-prey dynamics) |
-| **Chaotic** | Unpredictable, sensitive to initial conditions |
-| **Stable** | Little change; system has reached equilibrium |
+This crate is part of the **[SuperInstance Ternary Fleet](https://github.com/orgs/SuperInstance/repositories?q=ternary)**:
 
-The `ModeClassifier` analyzes time series data to determine which regime a system is in.
+- **[ternary-core](https://github.com/SuperInstance/ternary-core)** — shared traits and Z₃ arithmetic
+- **[ternary-grid](https://github.com/SuperInstance/ternary-grid)** — spatial grid with {-1, 0, +1} cells
+- **[ternary-graph](https://github.com/SuperInstance/ternary-graph)** — ternary-weighted graph algorithms
+- **[ternary-automata](https://github.com/SuperInstance/ternary-automata)** — three-state cellular automata
+- **[ternary-compiler](https://github.com/SuperInstance/ternary-compiler)** — expression compiler and optimizer
 
-### Trajectories
+200+ crates. 4,300+ tests. One pattern.
 
-Individual agents don't just follow population trends. A **Trajectory** tracks a single agent's strategy changes over time, enabling analysis of:
+## Research Context
 
-- **Loyalty** — agents who never change strategy
-- **Oscillation** — agents who switch back to a previous strategy
-- **Transition rates** — how often agents change their approach
+The ternary approach connects to several active research areas:
+- **Ternary Neural Networks** (TNNs): weights constrained to {-1, 0, +1} for efficient inference
+- **Huawei's ternary chip**: 7nm ternary silicon with 60% less power consumption
+- **Active inference**: free energy minimization naturally maps to ternary action selection
+- **Cyclic dominance**: RPS dynamics maintain biodiversity in spatial ecology
+- **Z₃ group theory**: the only algebraic group on three elements is cyclic addition mod 3
 
 ## Usage
 
-```rust
-use ternary_dynamics::*;
-
-// Track population metrics over time
-let mut ts = TimeSeries::new();
-ts.record(0, PopulationMetrics::from_counts(33, 34, 33));
-ts.record(1, PopulationMetrics::from_counts(10, 50, 40));
-ts.record(2, PopulationMetrics::from_counts(5, 80, 15));
-
-// Detect phase transitions
-let detector = PhaseDetector::default();
-let events = detector.detect(&ts.generations, &ts.diversity_series());
-
-// Find critical points
-let cd = CriticalDetector::new();
-let critical = cd.detect_all(
-    &ts.generations,
-    &ts.fitness_series(),
-    &ts.diversity_series(),
-    &ts.avoidance_series(),
-    &ts.metrics.iter().map(|m| m.population_size).collect::<Vec<_>>(),
-);
-
-// Classify dynamics
-let classifier = ModeClassifier::new();
-let mode = classifier.classify(&ts.fitness_series());
-
-// Track individual agents
-let mut traj = Trajectory::new(42);
-traj.adopt(TernaryStrategy::Cooperate, 0);
-traj.adopt(TernaryStrategy::Exploit, 50);
-assert_eq!(traj.transition_count(), 1);
-
-// Log detailed per-generation state
-let mut logger = GenerationLogger::new();
-logger.log(GenerationSnapshot::new(0, [33, 34, 33], 0.65, 0.66));
+```toml
+[dependencies]
+ternary-dynamics = "0.1.0"
 ```
 
-## Features
-
-- **TimeSeries** — track fitness, diversity, and avoidance ratio over generations
-- **PhaseTransition** / **PhaseDetector** — detect sudden behavioral shifts
-- **CriticalPoint** / **CriticalDetector** — identify fitness plateaus, diversity cliffs, avoidance spikes
-- **GenerationLogger** — record detailed per-generation snapshots for replay
-- **DynamicMode** / **ModeClassifier** — classify system state (converging, oscillating, chaotic, stable)
-- **Trajectory** — track individual agent strategy evolution
-
-## Design
-
-- Pure Rust, no unsafe code, no external dependencies
-- Edition 2021, MIT licensed
-- All metrics computed from raw strategy counts — no simulation engine included
+```rust
+use ternary_dynamics;
+```
 
 ## License
 
 MIT
-
-## See Also
-- **ternary-chaos** — related
-- **ternary-kuramoto** — related
-- **ternary-entropy** — related
-- **ternary-phase** — related
-- **ternary-ising** — related
-
