@@ -1,120 +1,168 @@
 # ternary-dynamics
 
-[![Crates.io](https://img.shields.io/crates/v/ternary-dynamics.svg)](https://crates.io/crates/ternary-dynamics)
-[![Documentation](https://docs.rs/ternary-dynamics/badge.svg)](https://docs.rs/ternary-dynamics)
-![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+**Dynamic markings for agent resource control.**
 
-Temporal dynamics of ternary agent systems — how strategies evolve over time, phase transitions, and critical points.
+In music, dynamics (pp, p, mp, mf, f, ff) tell performers how loud or soft to play.
+Crescendos swell, diminuendos fade, and sforzandos hit suddenly. This crate brings
+those expressive markings to ternary agent systems, mapping abstract dynamic levels to
+concrete resource allocations.
 
-## Theory
+## Overview
 
-In ternary agent systems, every agent operates under one of three fundamental strategies:
+When an agent needs computational resources — CPU time, memory, API calls, attention
+budget — the question isn't just *how much* but *how it changes over time*. Musical
+dynamics provide a natural vocabulary for this:
 
-- **Avoid** — retreat from interaction, minimize risk and exposure
-- **Cooperate** — seek mutual benefit through collaboration
-- **Exploit** — take advantage of others for personal gain
+- A **piano** agent uses minimal resources, running quietly in the background
+- A **forte** agent uses significant resources, running prominently
+- A **crescendo** gradually increases resource usage
+- A **sforzando** suddenly spikes, then returns to normal
 
-The interplay of these strategies over time produces rich dynamics analogous to physical systems:
+## Core Components
 
-### Phase Transitions
+### DynamicMark
 
-Much like matter transitioning between solid, liquid, and gas, ternary populations undergo sudden shifts in collective behavior. A population of cooperators can collapse into avoidance in a single generation — a **cascade** — when exploitation pressure crosses a critical threshold. These transitions are marked by discontinuities in population-level metrics like diversity and avoidance ratio.
+Eight dynamic levels from softest to loudest, each mapped to a resource fraction:
 
-### Critical Points
+| Mark | Notation | Intensity | Fraction |
+|------|----------|-----------|----------|
+| Ppp  | ppp      | 0.0625    | 6.25%    |
+| Pp   | pp       | 0.125     | 12.5%    |
+| P    | p        | 0.25      | 25%      |
+| Mp   | mp       | 0.375     | 37.5%    |
+| Mf   | mf       | 0.5       | 50%      |
+| F    | f        | 0.75      | 75%      |
+| Ff   | ff       | 0.875     | 87.5%    |
+| Fff  | fff      | 1.0       | 100%     |
 
-Critical points mark generations where the system's behavior fundamentally changes:
+Mezzo-forte (mf) is the default — the "normal" operating level at 50% resources.
 
-- **Fitness plateaus** — the population reaches an evolutionary equilibrium
-- **Diversity cliffs** — rapid loss of strategy variety, often presaging monoculture
-- **Avoidance spikes** — sudden retreat behavior, a hallmark of cascading fear
-- **Population crashes** — mass die-offs triggered by over-exploitation
+```rust
+let mark = DynamicMark::F;
+let resources = mark.resource_amount(100.0); // 75.0
+assert_eq!(mark.louder(), DynamicMark::Ff);
+assert_eq!(mark.softer(), DynamicMark::Mf);
+```
 
-Identifying these points allows researchers to predict and potentially steer system outcomes.
+### DynamicCurve
 
-### Dynamic Modes
+Shapes how dynamics change over time. Six curve types:
 
-Over time, ternary systems can be classified into four dynamic regimes:
+- **Flat**: Constant level throughout
+- **Crescendo**: Gradually increasing from one level to another
+- **Diminuendo**: Gradually decreasing
+- **Sforzando**: Sudden accent at a specific position, then return to base
+- **Swell**: Crescendo followed by diminuendo (rise and fall)
+- **Custom**: User-defined sequence of marks
 
-| Mode | Description |
-|------|-------------|
-| **Converging** | Metrics trend consistently in one direction |
-| **Oscillating** | Regular cycling between states (predator-prey dynamics) |
-| **Chaotic** | Unpredictable, sensitive to initial conditions |
-| **Stable** | Little change; system has reached equilibrium |
+Curves interpolate smoothly between dynamic levels, producing a vector of intensity
+values at each step.
 
-The `ModeClassifier` analyzes time series data to determine which regime a system is in.
+```rust
+let curve = DynamicCurve::crescendo(DynamicMark::P, DynamicMark::F, 5);
+let intensities = curve.evaluate();
+// [0.25, ~0.42, ~0.58, ~0.67, 0.75]
+```
 
-### Trajectories
+### DynamicContext
 
-Individual agents don't just follow population trends. A **Trajectory** tracks a single agent's strategy changes over time, enabling analysis of:
+Interprets dynamics based on surrounding context — just as a musician interprets a
+forte differently after a pianissimo than after another forte.
 
-- **Loyalty** — agents who never change strategy
-- **Oscillation** — agents who switch back to a previous strategy
-- **Transition rates** — how often agents change their approach
+- A mark feels **softer** after a very loud mark (contrast effect)
+- A mark feels **louder** after a very quiet mark (contrast effect)
+- A mark before a loud section is slightly subdued (anticipation)
+
+```rust
+let ctx = DynamicContext::new();
+let solo = ctx.interpret(DynamicMark::P, None, None);     // 0.25
+let after_loud = ctx.interpret(DynamicMark::P, Some(DynamicMark::Fff), None);
+assert!(after_loud < solo); // p after fff feels even softer
+```
+
+### DynamicBalance
+
+Distributes a shared resource budget across multiple agents based on their dynamics.
+Each agent's share is proportional to their dynamic intensity.
+
+```rust
+let mut balance = DynamicBalance::new(100.0);
+balance.set_agent("researcher", DynamicMark::F);
+balance.set_agent("writer", DynamicMark::P);
+let alloc = balance.allocate();
+// researcher gets ~75%, writer gets ~25%
+assert!(balance.is_balanced()); // allocations sum to budget
+```
+
+### DynamicInterpreter
+
+Maps abstract dynamic specifications to concrete resource amounts. Supports context
+overrides for special situations (e.g., "emergency" context always gets maximum
+resources regardless of the dynamic mark).
+
+```rust
+let mut interp = DynamicInterpreter::new(200.0);
+interp.set_override("emergency", 1.0);
+let normal = interp.interpret_with_context(DynamicMark::P, "normal");
+let emergency = interp.interpret_with_context(DynamicMark::P, "emergency");
+assert!(emergency > normal);
+```
 
 ## Usage
 
 ```rust
 use ternary_dynamics::*;
 
-// Track population metrics over time
-let mut ts = TimeSeries::new();
-ts.record(0, PopulationMetrics::from_counts(33, 34, 33));
-ts.record(1, PopulationMetrics::from_counts(10, 50, 40));
-ts.record(2, PopulationMetrics::from_counts(5, 80, 15));
+// Simple resource mapping
+let budget = 1000.0;
+let mark = DynamicMark::Mf;
+let allocation = mark.resource_amount(budget); // 500.0
 
-// Detect phase transitions
-let detector = PhaseDetector::default();
-let events = detector.detect(&ts.generations, &ts.diversity_series());
+// Shape dynamics over time
+let curve = DynamicCurve::sforzando(DynamicMark::Pp, DynamicMark::Fff, 3, 7);
+let profile = curve.evaluate();
+// Most values are quiet, with a sudden spike at position 3
 
-// Find critical points
-let cd = CriticalDetector::new();
-let critical = cd.detect_all(
-    &ts.generations,
-    &ts.fitness_series(),
-    &ts.diversity_series(),
-    &ts.avoidance_series(),
-    &ts.metrics.iter().map(|m| m.population_size).collect::<Vec<_>>(),
-);
+// Balance multiple agents
+let mut bal = DynamicBalance::new(100.0);
+bal.set_agent("agent-a", DynamicMark::F);
+bal.set_agent("agent-b", DynamicMark::P);
+bal.set_agent("agent-c", DynamicMark::Mf);
+for (name, amount) in bal.allocate() {
+    println!("{name}: {amount:.1}");
+}
 
-// Classify dynamics
-let classifier = ModeClassifier::new();
-let mode = classifier.classify(&ts.fitness_series());
-
-// Track individual agents
-let mut traj = Trajectory::new(42);
-traj.adopt(TernaryStrategy::Cooperate, 0);
-traj.adopt(TernaryStrategy::Exploit, 50);
-assert_eq!(traj.transition_count(), 1);
-
-// Log detailed per-generation state
-let mut logger = GenerationLogger::new();
-logger.log(GenerationSnapshot::new(0, [33, 34, 33], 0.65, 0.66));
+// Interpret dynamically
+let interp = DynamicInterpreter::new(budget);
+let resources = interp.interpret_curve(&curve);
 ```
 
-## Features
+## Design Philosophy
 
-- **TimeSeries** — track fitness, diversity, and avoidance ratio over generations
-- **PhaseTransition** / **PhaseDetector** — detect sudden behavioral shifts
-- **CriticalPoint** / **CriticalDetector** — identify fitness plateaus, diversity cliffs, avoidance spikes
-- **GenerationLogger** — record detailed per-generation snapshots for replay
-- **DynamicMode** / **ModeClassifier** — classify system state (converging, oscillating, chaotic, stable)
-- **Trajectory** — track individual agent strategy evolution
+Musical dynamics are a surprisingly good model for resource allocation because they're:
 
-## Design
+1. **Relative, not absolute**: Forte doesn't mean "100 units" — it means "loud relative
+   to the current context." This makes dynamics portable across different scales.
 
-- Pure Rust, no unsafe code, no external dependencies
-- Edition 2021, MIT licensed
-- All metrics computed from raw strategy counts — no simulation engine included
+2. **Expressive**: The same agent can whisper (pp) or shout (fff) depending on the
+   situation, creating natural variation rather than flat resource consumption.
+
+3. **Temporal**: Crescendos and diminuendos model real-world patterns where resource
+   needs ramp up and down gradually rather than switching abruptly.
+
+4. **Contextual**: The same dynamic mark can be interpreted differently based on what
+   came before and what comes next — just like in real music.
+
+## Testing
+
+```bash
+cargo test
+```
+
+All 34 tests pass, covering dynamic intensity mapping, crescendo/diminuendo/swell curves,
+sforzando accents, multi-agent balancing, context interpretation, and the full
+DynamicInterpreter pipeline.
 
 ## License
 
 MIT
-
-## See Also
-- **ternary-chaos** — related
-- **ternary-kuramoto** — related
-- **ternary-entropy** — related
-- **ternary-phase** — related
-- **ternary-ising** — related
-
