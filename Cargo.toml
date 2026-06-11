@@ -1,11 +1,7 @@
 [package]
 name = "ternary-dynamics"
 version = "0.1.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/casey-digennaro/ternary-dynamics"
 edition = "2021"
-description = "Temporal dynamics of ternary agent systems — strategy evolution, phase transitions, and critical points"
-license = "MIT"
-repository = "https://github.com/SuperInstance/ternary-dynamics"
-keywords = ["ternary", "dynamics", "simulation", "agents", "evolution"]
-categories = ["science", "simulation"]
-
-[dependencies]
+description = "Dynamic ternary logic simulation engine"
